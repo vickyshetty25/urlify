@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: urlify-postgres
+    environment:
+      POSTGRES_DB: urlify_db
+      POSTGRES_USER: vicky
+      POSTGRES_PASSWORD: vicky123
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vicky -d urlify_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: urlify-redis
+    ports:
+      - "6380:6379"
+
+  app:
+    build: .
+    container_name: urlify-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/urlify_db
+      SPRING_DATASOURCE_USERNAME: vicky
+      SPRING_DATASOURCE_PASSWORD: vicky123
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+volumes:
+  postgres-data:
